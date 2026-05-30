@@ -36,6 +36,13 @@ impl TransformResult {
 pub trait Transform: Send + Sync {
     fn name(&self) -> &str;
     fn apply(&self, tile: &mut TileData) -> TransformResult;
+    fn box_clone(&self) -> Box<dyn Transform>;
+}
+
+impl Clone for Box<dyn Transform> {
+    fn clone(&self) -> Self {
+        self.box_clone()
+    }
 }
 
 // ── Tile data (simplified tile for transform operations) ─────────────
@@ -112,6 +119,10 @@ impl Transform for ScaleTransform {
         tile.value = tile.value * self.factor + self.offset;
         TransformResult::pass()
     }
+
+    fn box_clone(&self) -> Box<dyn Transform> {
+        Box::new(self.clone())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -161,6 +172,10 @@ impl Transform for ThresholdTransform {
         }
         TransformResult::pass()
     }
+
+    fn box_clone(&self) -> Box<dyn Transform> {
+        Box::new(self.clone())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -195,11 +210,14 @@ impl Transform for NormalizeTransform {
         tile.value = (tile.value - self.min_val) / range;
         TransformResult::pass()
     }
+
+    fn box_clone(&self) -> Box<dyn Transform> {
+        Box::new(self.clone())
+    }
 }
 
 // ── Pipeline ─────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone)]
 pub struct TransformPipeline {
     transforms: Vec<Box<dyn Transform>>,
 }
